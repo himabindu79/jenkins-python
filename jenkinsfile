@@ -1,0 +1,100 @@
+pipeline {
+    agent any
+    
+    environment {
+        PYTHON_PATH = 'python'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Checking out code from GitHub...'
+                checkout scm
+                echo 'Code checkout complete!'
+            }
+        }
+        
+        stage('Environment Info') {
+            steps {
+                echo 'Displaying environment information...'
+                bat '''
+                    echo Current Directory:
+                    cd
+                    echo.
+                    echo Files in workspace:
+                    dir
+                    echo.
+                    echo Python Version:
+                    python --version
+                    echo.
+                    echo Pip Version:
+                    pip --version
+                '''
+            }
+        }
+        
+        stage('Install Dependencies') {
+            steps {
+                echo 'Installing Python dependencies...'
+                bat '''
+                    if exist requirements.txt (
+                        pip install -r requirements.txt
+                    ) else (
+                        echo No requirements.txt found, skipping...
+                    )
+                '''
+            }
+        }
+        
+        stage('Run Tests') {
+            steps {
+                echo 'Running unit tests...'
+                bat 'python -m unittest test_calculator.py -v'
+            }
+        }
+        
+        stage('Code Analysis') {
+            steps {
+                echo 'Running code analysis...'
+                bat '''
+                    echo Checking Python syntax...
+                    python -m py_compile calculator.py
+                    python -m py_compile test_calculator.py
+                    echo Syntax check passed!
+                '''
+            }
+        }
+        
+        stage('Build Report') {
+            steps {
+                echo 'Generating build report...'
+                bat '''
+                    echo ===================================
+                    echo BUILD SUMMARY
+                    echo ===================================
+                    echo Project: Python Calculator
+                    echo Branch: %GIT_BRANCH%
+                    echo Commit: %GIT_COMMIT%
+                    echo Build: %BUILD_NUMBER%
+                    echo Status: SUCCESS
+                    echo ===================================
+                '''
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo '✓ Pipeline completed successfully!'
+            echo 'All tests passed and code is ready for deployment.'
+        }
+        failure {
+            echo '✗ Pipeline failed!'
+            echo 'Please check the logs above for errors.'
+        }
+        always {
+            echo 'Cleaning up workspace...'
+            // You can add cleanup commands here if needed
+        }
+    }
+}
